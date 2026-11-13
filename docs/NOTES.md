@@ -113,8 +113,10 @@
   `spawnOrCreateCivilian(data, level, List.of(townHall), true)` → `module.assignCitizen(data)` → `CitizenAddedModEvent`.
   Авто-найм (`WorkerBuildingModule.onColonyTick`, настройка ратуши `AUTO_HIRING_MODE`) работает только в `ACTIVE`,
   прямое назначение — сразу. Дома жители занимают сами (`LivingBuildingModule.onColonyTick`, `AUTO_HOUSING_MODE`).
+- **Не каждый `IAssignsJob` даёт работу**: `warehouse_couriers` у склада только привязывает уже нанятых курьеров
+  (`assignCitizen` → `true`, а `getJob()` остаётся `null`). На 0.4 так получились 2 безработных. Проверяем `getJob() != null`.
 - Инструменты НПС-колонии не принесёт никто — выдаём стартовый набор в инвентарь жителя.
-- Проверено на сервере 0.4: город из 0.3 (Medieval Oak) → 8 жителей с работой.
+- Проверено на сервере 0.4: город из 0.3 (Medieval Oak) → 6 жителей, у всех профессия (по сохранению `colonyN.dat`).
 - Колония тикает только в `ACTIVE`: игрок в её чанках (close subscribers) или онлайн владелец/офицер при >40
   загруженных чанках. Иначе `UNLOADED`/`INACTIVE` — вдали от игрока правда в данных, как и задумано.
 

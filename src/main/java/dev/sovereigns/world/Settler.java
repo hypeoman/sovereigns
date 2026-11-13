@@ -25,20 +25,28 @@ public final class Settler {
     /** Returns the number of citizens settled. */
     public static int settle(ServerLevel level, IColony colony, BlockPos spawn) {
         int settled = 0;
+        ICitizenData spare = null; // created but not employed yet; tried on the next slot, never spawned
         for (IBuilding building : colony.getServerBuildingManager().getBuildings().values()) {
             for (IAssignsJob job : building.getModulesByType(IAssignsJob.class)) {
                 while (!job.isFull()) {
-                    ICitizenData citizen = colony.getCitizenManager().createAndRegisterCivilianData();
+                    ICitizenData citizen = spare != null ? spare : colony.getCitizenManager().createAndRegisterCivilianData();
+                    spare = null;
+                    // Some IAssignsJob modules only link existing workers and give no job (warehouse "couriers").
+                    if (!job.assignCitizen(citizen) || citizen.getJob() == null) {
+                        job.removeCitizen(citizen);
+                        spare = citizen;
+                        break;
+                    }
                     citizen.setGenderAndGenerateName(level.random.nextBoolean());
                     starterKit(citizen);
                     colony.getCitizenManager().spawnOrCreateCivilian(citizen, level, List.of(spawn), true);
-                    if (!job.assignCitizen(citizen)) {
-                        break; // the slot refused (e.g. a research-locked job); the citizen stays jobless
-                    }
                     IMinecoloniesAPI.getInstance().getEventBus().post(new CitizenAddedModEvent(citizen, CitizenAddedModEvent.CitizenAddedSource.COMMANDS));
                     settled++;
                 }
             }
+        }
+        if (spare != null) {
+            colony.getCitizenManager().removeCivilian(spare);
         }
         return settled;
     }
