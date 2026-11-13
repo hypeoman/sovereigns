@@ -68,7 +68,23 @@
   очередь Structurize растянута по тикам, хендлер сам регистрирует блоки здания (`registerBlockPosition`).
   **Не использовать** `CreativeBuildingStructureHandler.loadAndPlaceStructureWithRotation(..., Future, ...)`:
   он проверяет `hasBluePrint()` до чтения Future и молча ничего не ставит (на 0.2 так появился только блок хижины).
-- Схемы: `StructurePacks.getStructurePack(pack)` (Structurize).
+- Схемы: `StructurePacks.getStructurePack(pack)` (Structurize), ключ — имя из `pack.json` («Medieval Oak»).
+- **Подземные слои.** Схемы MineColonies несут свой фундамент: нижние слои целиком из `structurize:blocksolidsubstitution`
+  / `blocksubstitution` (у `medievaloak/fundamentals/townhall1` — слои 0–3, якорь на слое 5). Верхний подземный слой
+  должен заменить поверхность земли. Число слоёв — метка `groundlevel` (`BlueprintTagUtils.getNumberOfGroundLevels`),
+  но у townhall1 её **нет** — определяем сами: нижние слои без воздуха (`ColonySpawner.undergroundLayers`).
+  Если поставить схему нижним слоем на землю, получается пьедестал из 4 блоков земли (баг 0.2).
+- Очередь Structurize **не сохраняется** при остановке сервера: недостроенная схема так и останется недостроенной.
+
+## Дымовые тесты на сервере
+
+- Консоль через stdin `runServer` для сценариев не годится: Gradle отдаёт ввод серверу пачкой в конце, паузы между
+  командами теряются (постройка не успевает, проверки идут в том же тике).
+- Используем RCON: `tools/smoke.sh <файл-команд>` (строки `wait N` — настоящие паузы). Нужно в `run/server.properties`:
+  `enable-rcon=true`, `rcon.password=svdev`.
+- Позицию брать `positioned over motion_blocking_no_leaves`: `world_surface` ставит на кроны деревьев.
+- Проверка блоков: `execute unless block X Y Z minecraft:air run say ...` по столбцам; подсчёт непустых блоков в области —
+  `clone <область> <пустое место> masked` («Successfully cloned N»). Ратуша 1 Medieval Oak: 352 блока над землёй.
 
 ### Жители и стража (для 0.4)
 - `CitizenManager.onColonyTick` сам спавнит жителей, если есть ратуша, включена настройка `BuildingTownHall.MOVE_IN`

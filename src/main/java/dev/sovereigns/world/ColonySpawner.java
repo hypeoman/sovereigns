@@ -65,9 +65,11 @@ public final class ColonySpawner {
 
         BlockPos offset = blueprint.getPrimaryBlockOffset();
         int groundTop = feet.getY() - 1;
-        // Same rule as the build tool: anchor sits "groundlevel"-tag blocks above ground; untagged blueprints stand on it.
-        BlockPos anchor = new BlockPos(feet.getX(), groundTop + BlueprintTagUtils.getGroundAnchorOffset(blueprint, offset.getY() + 1), feet.getZ());
-        BlockPos origin = anchor.subtract(offset);
+        // MineColonies blueprints carry their own underground layers (solid substitution); the top one must replace
+        // the ground surface. The "groundlevel" tag gives their count; untagged ones (e.g. townhall1) are detected.
+        int groundLevels = BlueprintTagUtils.getNumberOfGroundLevels(blueprint, undergroundLayers(blueprint));
+        BlockPos origin = new BlockPos(feet.getX() - offset.getX(), groundTop - groundLevels + 1, feet.getZ() - offset.getZ());
+        BlockPos anchor = origin.offset(offset);
         levelGround(level, origin, blueprint, groundTop);
 
         FakePlayer ruler = FakePlayerFactory.get(level, new GameProfile(rulerUuid(provinceId), rulerName));
@@ -98,6 +100,20 @@ public final class ColonySpawner {
         // The GUI path posts this, the API path does not; addons listen to it.
         IMinecoloniesAPI.getInstance().getEventBus().post(new ColonyCreatedModEvent(colony));
         return colony;
+    }
+
+    /** Bottom layers without any air are underground; at least one so a blueprint with none still stands on the ground. */
+    static int undergroundLayers(Blueprint blueprint) {
+        for (int y = 0; y < blueprint.getSizeY(); y++) {
+            for (int x = 0; x < blueprint.getSizeX(); x++) {
+                for (int z = 0; z < blueprint.getSizeZ(); z++) {
+                    if (blueprint.getBlockState(new BlockPos(x, y, z)).isAir()) {
+                        return Math.max(1, y);
+                    }
+                }
+            }
+        }
+        return 1;
     }
 
     /** Clears the footprint above the ground and fills dips under it, so the paste neither floats nor gets buried. */
