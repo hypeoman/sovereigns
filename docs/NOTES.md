@@ -63,9 +63,11 @@
 - Путь build tool в креативе — `AbstractBlockHut.setup(...)`: якорный блок → `onBlockPlacedByBuildTool` →
   `building.setStructurePack/setBlueprintPath/setBuildingLevel(N)/setRotationMirror` →
   `building.onUpgradeComplete(blueprint, level)`. Уровень берётся из имени схемы (`...N.blueprint`).
-- Мгновенная постройка: `CreativeBuildingStructureHandler.loadAndPlaceStructureWithRotation(level, futureBlueprint,
-  pos, rotMir, fancy, null)` — `player` nullable; ставит в очередь Structurize `Manager` (растянуто по тикам),
-  хендлер сам регистрирует блоки здания (`registerBlockPosition`).
+- Мгновенная постройка: `Manager.addToQueue(new PlaceStructureOperation(new StructurePlacer(
+  new CreativeBuildingStructureHandler(level, anchor, blueprint, rotMir, true)), null))` — `player` nullable,
+  очередь Structurize растянута по тикам, хендлер сам регистрирует блоки здания (`registerBlockPosition`).
+  **Не использовать** `CreativeBuildingStructureHandler.loadAndPlaceStructureWithRotation(..., Future, ...)`:
+  он проверяет `hasBluePrint()` до чтения Future и молча ничего не ставит (на 0.2 так появился только блок хижины).
 - Схемы: `StructurePacks.getStructurePack(pack)` (Structurize).
 
 ### Жители и стража (для 0.4)
