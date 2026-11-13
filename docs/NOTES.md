@@ -93,12 +93,47 @@
   Для материализации (этап 2) — ставить хижины в очередь по одной и/или вне глаз игрока.
 - Очередь Structurize **не сохраняется** при остановке сервера: недостроенная схема так и останется недостроенной.
 
+## Аддоны колоний и НПС-колония (этап 0.6)
+
+Изучено по декомпиляции jar сборки (Vineflower).
+
+### War 'N Taxes 5.0.9
+- Авто-брошенные колонии (`abandon/ColonyAbandonmentManager`) смотрят на `lastContactInHours` владельца — у НПС-колонии
+  он растёт всегда. В сборке выключено главным рубильником `EnableColonyAbandonmentSystem = false`
+  (`config/warntax/minecolonytax.toml`); при `false` WnT вообще не пишет в права колоний. Если включат —
+  наши колонии станут «брошенными» через `ColonyAutoAbandonDays` (14); лечится `setLastContactInHours(0)`.
+- «Ремонт синтетических владельцев» (`repairLegacySyntheticOwners`) трогает только имена `[AUTO_OWNER]`,
+  `[SYSTEM_ABANDONED]`, `[abandoned]` и UUID `MINECOLONY_TAX_SYSTEM_OWNER` — наших правителей не касается.
+- Налёты на колонию с офлайн-владельцем разрешены (`AllowOfflineRaids = true`). **Войну WnT объявить нельзя**:
+  первая колония владельца требует онлайн-владельца («High Stakes War», только аванпосты уязвимы офлайн),
+  а у каждого нашего правителя ровно одна колония. Войны с НПС ведёт наш мод (DECISIONS), WnT тут не нужен.
+- `colonyactivity list` считает и наши колонии (в его списке «активны»).
+- **Конфликт с нашими войнами.** `permissions/PermissionsHealthCheck.run` — при старте сервера и каждые 60000 тиков
+  (~50 мин), а также после конца войны WnT — во **всех** колониях: (1) любого не-владельца с рангом Hostile, который
+  не участник войны/налёта/осады WnT, понижает до Neutral (`setPlayerRank`); (2) снимает с рангов Hostile/Neutral
+  боевые действия (`HURT_CITIZEN`, `ATTACK_CITIZEN`, `ATTACK_ENTITY`, `SHOOT_ARROW`...). Наш механизм войн
+  «правитель A — Hostile в колонии B» (см. «давность контакта» выше) он откатит. Решать на этапе 3/5: заново ставить
+  ранг после его проверки, вести бои через Colonies at War или выключать проверку в конфиге, если там есть рубильник.
+
+### War 'n Nobility 1.1.1
+- Всё про онлайн-игроков (`EntityArgument.player`): ранги, печати, вассалы. НПС-правители для него не существуют.
+
+### Colonies at War 0.2.0 (`me.lovkar.war`)
+- Свои войны колония↔колония: `/war standing|declare <colony> [plunder|raze|conquer]|peace|vassal|tribute...`,
+  команды выполняются «стоя в колонии» (`colonyAt(source)`), op-уровень 2. Колонии берёт из
+  `IColonyManager.getColonies(level)`, владельца почти не трогает (`getOwner()` — только для гнева «королевств»).
+  API `api/WarBridge` почти только чтение (`standing`, `atWar`, `hasWarRoom`, `offend`); объявить войну — только командой
+  (`execute positioned ... run war declare`). Войны НПС↔НПС через него возможны, вероятно нужна хижина War Room.
+
 ## Дымовые тесты на сервере
 
 - Консоль через stdin `runServer` для сценариев не годится: Gradle отдаёт ввод серверу пачкой в конце, паузы между
   командами теряются (постройка не успевает, проверки идут в том же тике).
 - Используем RCON: `tools/smoke.sh <файл-команд>` (строки `wait N` — настоящие паузы). Нужно в `run/server.properties`:
   `enable-rcon=true`, `rcon.password=svdev`.
+- Не прерывать `smoke.sh` снаружи: его `rcon.py` с командой `stop` остаётся жить, до 10 минут ждёт сервер и
+  выключает следующий запуск.
+- `forceload` на ~200 новых чанков разом — генерация дольше 60 с, сервер убивает watchdog. Грузить по 3×3–4×4 чанка с паузами.
 - Позицию брать `positioned over motion_blocking_no_leaves`: `world_surface` ставит на кроны деревьев.
 - Проверка блоков: `execute unless block X Y Z minecraft:air run say ...` по столбцам; подсчёт непустых блоков в области —
   `clone <область> <пустое место> masked` («Successfully cloned N»). Ратуша 1 Medieval Oak: 352 блока над землёй.
