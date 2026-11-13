@@ -17,8 +17,6 @@ public final class MapGen {
     public record CellSample(Land[] lands, int[] heights) {}
 
     public static final int POINTS = 3;
-    /** Land rougher than this (blocks of height spread inside a cell) counts as mountains. */
-    static final int MOUNTAIN_ROUGHNESS = 48;
 
     private MapGen() {}
 
@@ -96,7 +94,7 @@ public final class MapGen {
         Land major = Land.PLAINS;
         for (Land l : Land.values()) if (l != Land.WATER && counts[l.ordinal()] > counts[major.ordinal()]) major = l;
         int rough = max - min;
-        if (rough > MOUNTAIN_ROUGHNESS) major = Land.MOUNTAIN;
+        if (rough > b.mountainRoughness) major = Land.MOUNTAIN;
 
         // Site: the land point whose land neighbours are closest to its own height.
         int best = -1, bestScore = Integer.MAX_VALUE;
@@ -153,7 +151,7 @@ public final class MapGen {
                 Province next = w.provinces.get(Province.key(cx, cz));
                 if (next == null || next.owner != 0) continue;
                 // Rivers and lakes inside a cell make it a little harder to cross.
-                double cost = step.cost() + (next.land.crossCost + (next.nearWater ? 0.5 : 0)) / reach[step.state()];
+                double cost = step.cost() + (next.land.crossCost + (next.nearWater ? 0.3 : 0)) / reach[step.state()];
                 if (cost <= 1) queue.add(new Step(cost, step.state(), next));
             }
         }

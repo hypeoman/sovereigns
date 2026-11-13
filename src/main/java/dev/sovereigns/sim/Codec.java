@@ -12,7 +12,7 @@ import java.io.UncheckedIOException;
  * Bump {@link #SCHEMA} on any change and keep reading older versions (branch on {@code version}).
  */
 public final class Codec {
-    public static final int SCHEMA = 1;
+    public static final int SCHEMA = 2;
 
     private Codec() {}
 
@@ -21,6 +21,8 @@ public final class Codec {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bytes);
             out.writeLong(w.seed);
+            out.writeInt(w.provinceSize);
+            out.writeInt(w.regionCells);
             out.writeInt(w.day);
             out.writeInt(w.nextId);
             out.writeInt(w.regions.size());
@@ -91,7 +93,14 @@ public final class Codec {
         if (version < 1 || version > SCHEMA) throw new IllegalArgumentException("Unknown Sovereigns save schema " + version);
         try {
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(data));
-            World w = new World(in.readLong());
+            World w = new World(in.readLong(), new Balance());
+            if (version >= 2) {
+                w.provinceSize = in.readInt();
+                w.regionCells = in.readInt();
+            } else {
+                w.provinceSize = 512; // schema 1 had no geometry and only these defaults
+                w.regionCells = 8;
+            }
             w.day = in.readInt();
             w.nextId = in.readInt();
             for (int i = in.readInt(); i > 0; i--) w.regions.add(in.readLong());

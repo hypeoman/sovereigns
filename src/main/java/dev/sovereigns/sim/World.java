@@ -14,6 +14,8 @@ public final class World {
     public record Entry(int day, int state, String text) {}
 
     public final long seed;
+    /** Map geometry fixed when the world was created; config changes must not move existing borders. */
+    public int provinceSize, regionCells;
     public int day;
     public int nextId = 1;
     public final Map<Long, Province> provinces = new TreeMap<>();
@@ -25,8 +27,16 @@ public final class World {
     public final Map<Long, Integer> relations = new TreeMap<>();
     public final Deque<Entry> chronicle = new ArrayDeque<>();
 
-    public World(long seed) {
+    public World(long seed, Balance b) {
         this.seed = seed;
+        this.provinceSize = b.provinceSize;
+        this.regionCells = b.regionCells;
+    }
+
+    /** Makes {@code b} use this world's map geometry instead of the configured one. */
+    public void applyGeometry(Balance b) {
+        b.provinceSize = provinceSize;
+        b.regionCells = regionCells;
     }
 
     public Province provinceAt(int blockX, int blockZ, Balance b) {

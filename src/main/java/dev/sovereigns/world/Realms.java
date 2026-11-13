@@ -119,7 +119,8 @@ public final class Realms {
         ServerLevel overworld = event.getServer().overworld();
         balance = Config.balance();
         data = overworld.getDataStorage().computeIfAbsent(Data.FACTORY, "sovereigns");
-        if (data.world == null) data.world = new World(overworld.getSeed());
+        if (data.world == null) data.world = new World(overworld.getSeed(), balance);
+        data.world.applyGeometry(balance);
         if (data.lastGameDay < 0) data.lastGameDay = overworld.getGameTime() / TICKS_PER_DAY;
         data.setDirty();
         BlockPos spawn = overworld.getSharedSpawnPos();
@@ -178,6 +179,14 @@ public final class Realms {
                 + data.world.realms().size() + " independent in total";
         LOG.info("Sovereigns: {} (terrain sampled over {} ticks; map and prehistory {} ms)", msg, job.ticks,
                 String.format("%.1f", (System.nanoTime() - start) / 1e6));
+        // Terrain summary of the region, for tuning map generation against the real pack.
+        int x0 = MapGen.firstCell(job.rx, balance), z0 = MapGen.firstCell(job.rz, balance);
+        List<Province> cells = data.world.provinces.values().stream()
+                .filter(p -> p.cx >= x0 && p.cx < x0 + n && p.cz >= z0 && p.cz < z0 + n).toList();
+        LOG.info("Sovereigns region terrain: lands {}, roughness {}, near water {}",
+                cells.stream().collect(java.util.stream.Collectors.groupingBy(p -> p.land, java.util.TreeMap::new,
+                        java.util.stream.Collectors.counting())),
+                cells.stream().map(p -> p.roughness).sorted().toList(), cells.stream().filter(p -> p.nearWater).count());
         job.onDone.accept(msg);
     }
 

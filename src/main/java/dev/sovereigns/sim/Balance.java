@@ -10,7 +10,7 @@ public final class Balance {
     /** Side of a province cell, blocks. */
     public int provinceSize = 512;
     /** Side of a region, in province cells. */
-    public int regionCells = 8;
+    public int regionCells = 10;
     public int statesPerRegionMin = 8;
     public int statesPerRegionMax = 12;
     /** Soft limit of independent states: regions generated at the limit get only unowned provinces. */
@@ -18,7 +18,9 @@ public final class Balance {
     public int capitalMinDistance = 800;
     public int capitalMinSpawnDistance = 500;
     /** How far borders spread from a capital, in border cost (plains cost 1 per cell). */
-    public double claimRange = 2.2;
+    public double claimRange = 3.0;
+    /** A cell whose sampled land heights spread more than this (blocks) counts as mountains, whatever the biome. */
+    public int mountainRoughness = 100;
     /** A state with at least this many provinces gets an internal vassal (duchy) per this many provinces. */
     public int provincesPerDuchy = 6;
     public int prehistoryDays = 75;

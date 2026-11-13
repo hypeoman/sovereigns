@@ -42,7 +42,7 @@ class SimTest {
     }
 
     private World startWorld(long seed) {
-        World w = new World(seed);
+        World w = new World(seed, b);
         Simulation.addRegion(w, b, 0, 0, terrain(seed, 0, 0), 0, 0);
         return w;
     }
