@@ -1,0 +1,19 @@
+# Jar file name prefixes (case-insensitive) from the instance mods/ that are client-only and must not go to run/mods for runServer.
+# Extend this list when runServer crashes on a client class.
+betterf3-
+controlling-
+dynamic-fps-
+durabilitytooltip-
+enchdesc-
+entityculling-
+essential_
+euphoriapatcher-
+fast-ip-ping-
+iceberg-
+immediatelyfast-
+iris-
+mousetweaks-
+searchables-
+skinlayers3d-
+sodium-
+sodiumdynamiclights-
