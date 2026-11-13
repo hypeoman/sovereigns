@@ -52,6 +52,10 @@
 3. Ратуша: поставить блок `ModBlocks.blockHutTownHall`, затем
    `((AbstractBlockHut) block).onBlockPlacedByBuildTool(level, pos, state, null, null, rotMir, pack, blueprintPath)` —
    `placer` может быть `null`; внутри `setPlacedBy` → `colony.getServerBuildingManager().addNewBuilding(hut, level)`.
+   Проверено на 0.2: `createColony` с FakePlayer пишет два WARN «Adding fakeplayer as important subscriber: this
+   should not happen» со стектрейсом — это MineColonies сам отбрасывает FakePlayer, безвредно. Чтобы убрать шум,
+   пришлось бы повторить `createColony` вручную через `core.ChunkDataHelper` — не стоит того.
+   Консольная команда MineColonies для проверки: `minecolonies colony info <id>` / `minecolonies colony list`.
 4. Отправить `ColonyCreatedModEvent` в `IMinecoloniesAPI.getInstance().getEventBus()` — его слушают аддоны
    (GUI-путь его постит, API-путь — нет).
 
