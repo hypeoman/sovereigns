@@ -136,6 +136,9 @@
   (становится нейтралом). Игрок → правитель: `setOwner(fakePlayer)` + `setPlayerRank(playerUuid, rank, level)`
   при желании. Правитель → игрок: `setOwner(serverPlayer)`.
 - После смены — `colony.getPackageManager().sendPermissionsPackets()`, иначе клиент покажет старые права.
+- `Permissions.setOwner` (по байткоду): `players.remove(старый владелец)`, новые `ownerName/ownerUUID`, запись ранга 0,
+  `fullyAbandoned = false`, `markDirty`. Прежний владелец не остаётся даже офицером. Реализовано в `world.OwnerChange`,
+  команда `/realmdebug transfer <id> ruler|player <ник>`.
 
 ### Прочее
 - `IColonyManager.getIColonyByOwner(level, uuid)` возвращает **первую** колонию владельца: MineColonies рассчитан
