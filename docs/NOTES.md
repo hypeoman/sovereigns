@@ -107,7 +107,14 @@
 - `CitizenManager.onColonyTick` сам спавнит жителей, если есть ратуша, включена настройка `BuildingTownHall.MOVE_IN`
   и есть места. Принудительно: `colony.getCitizenManager().spawnOrCreateCivilian(null, level, list, true)`
   (так делает `/mc citizens spawnNew`), затем `CitizenAddedModEvent`.
-- Найм — через `WorkerBuildingModule` хижины (авто-найм по умолчанию) — проверить в 0.4.
+- Сам MineColonies спавнит лишь `initialCitizenAmount` жителей; дальше новые приходят только детьми или через таверну.
+  Поэтому НПС-колонию заселяем сами (`world.Settler`): на каждый `IAssignsJob`-модуль хижины (работники и стража),
+  пока `!isFull()`, — `createAndRegisterCivilianData` → `setGenderAndGenerateName` → предметы в `getInventory()` →
+  `spawnOrCreateCivilian(data, level, List.of(townHall), true)` → `module.assignCitizen(data)` → `CitizenAddedModEvent`.
+  Авто-найм (`WorkerBuildingModule.onColonyTick`, настройка ратуши `AUTO_HIRING_MODE`) работает только в `ACTIVE`,
+  прямое назначение — сразу. Дома жители занимают сами (`LivingBuildingModule.onColonyTick`, `AUTO_HOUSING_MODE`).
+- Инструменты НПС-колонии не принесёт никто — выдаём стартовый набор в инвентарь жителя.
+- Проверено на сервере 0.4: город из 0.3 (Medieval Oak) → 8 жителей с работой.
 - Колония тикает только в `ACTIVE`: игрок в её чанках (close subscribers) или онлайн владелец/офицер при >40
   загруженных чанках. Иначе `UNLOADED`/`INACTIVE` — вдали от игрока правда в данных, как и задумано.
 

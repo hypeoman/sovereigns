@@ -49,7 +49,7 @@ public final class Sovereigns {
                     name, "Ruler of " + name, pack, 2, ColonySpawner.debugTown());
             IColony colony = town.colony();
             source.sendSuccess(() -> Component.literal("Colony #" + colony.getID() + " '" + name + "' (" + pack + ") owned by "
-                    + colony.getPermissions().getOwnerName() + "; buildings " + town.placed()
+                    + colony.getPermissions().getOwnerName() + "; buildings " + town.placed() + "; citizens " + town.citizens()
                     + (town.skipped().isEmpty() ? "" : "; no blueprint for " + town.skipped())), true);
             return colony.getID();
         } catch (IllegalStateException e) {

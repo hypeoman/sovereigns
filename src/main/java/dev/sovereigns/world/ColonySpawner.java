@@ -54,7 +54,7 @@ public final class ColonySpawner {
         }
     }
 
-    public record Spawned(IColony colony, List<String> placed, List<String> skipped) {
+    public record Spawned(IColony colony, List<String> placed, List<String> skipped, int citizens) {
     }
 
     /** Stage 0.3 test town: worker huts, housing and a guard tower around the town hall. */
@@ -129,11 +129,12 @@ public final class ColonySpawner {
                     placed);
         }
 
-        LOGGER.info("Colony {} '{}' ({}): ground top y={}, town hall anchor {} origin {}, placed {}, hut origins {}, skipped {}",
-                colony.getID(), colonyName, pack, groundTop, hallAnchor, hallOrigin, placed, origins, skipped);
+        int citizens = Settler.settle(level, colony, hallAnchor);
+        LOGGER.info("Colony {} '{}' ({}): ground top y={}, town hall anchor {} origin {}, placed {}, hut origins {}, skipped {}, citizens {}",
+                colony.getID(), colonyName, pack, groundTop, hallAnchor, hallOrigin, placed, origins, skipped, citizens);
         // The GUI path posts this, the API path does not; addons listen to it.
         IMinecoloniesAPI.getInstance().getEventBus().post(new ColonyCreatedModEvent(colony));
-        return new Spawned(colony, placed, skipped);
+        return new Spawned(colony, placed, skipped, citizens);
     }
 
     /**
