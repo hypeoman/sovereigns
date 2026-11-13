@@ -104,12 +104,12 @@ public final class ColonySpawner {
 
         int groundTop = feet.getY() - 1;
         BlockPos hallOffset = hallPrint.getPrimaryBlockOffset();
-        BlockPos hallOrigin = origin(hallPrint, feet.getX() - hallOffset.getX(), groundTop, feet.getZ() - hallOffset.getZ());
+        BlockPos hallOrigin = origin(level, pack, hall, hallPrint, feet.getX() - hallOffset.getX(), groundTop, feet.getZ() - hallOffset.getZ());
         List<TownLayout.Spot> spots = TownLayout.arrange(new TownLayout.Footprint(hallPrint.getSizeX(), hallPrint.getSizeZ()),
                 prints.stream().map(b -> new TownLayout.Footprint(b.getSizeX(), b.getSizeZ())).toList());
         List<BlockPos> origins = new ArrayList<>();
         for (int i = 0; i < prints.size(); i++) {
-            origins.add(origin(prints.get(i), hallOrigin.getX() + spots.get(i).x(), groundTop, hallOrigin.getZ() + spots.get(i).z()));
+            origins.add(origin(level, pack, found.get(i), prints.get(i), hallOrigin.getX() + spots.get(i).x(), groundTop, hallOrigin.getZ() + spots.get(i).z()));
         }
         levelGround(level, hallOrigin, hallPrint, groundTop);
         for (int i = 0; i < prints.size(); i++) {
@@ -129,8 +129,8 @@ public final class ColonySpawner {
                     placed);
         }
 
-        LOGGER.info("Colony {} '{}' ({}): town hall anchor {}, placed {}, skipped {}", colony.getID(), colonyName, pack, hallAnchor,
-                placed, skipped);
+        LOGGER.info("Colony {} '{}' ({}): ground top y={}, town hall anchor {} origin {}, placed {}, hut origins {}, skipped {}",
+                colony.getID(), colonyName, pack, groundTop, hallAnchor, hallOrigin, placed, origins, skipped);
         // The GUI path posts this, the API path does not; addons listen to it.
         IMinecoloniesAPI.getInstance().getEventBus().post(new ColonyCreatedModEvent(colony));
         return new Spawned(colony, placed, skipped);
@@ -138,12 +138,29 @@ public final class ColonySpawner {
 
     /**
      * Footprint min corner for a blueprint standing on {@code groundTop}. MineColonies blueprints carry their own
-     * underground layers (solid substitution); the top one must replace the ground surface. The "groundlevel" tag
-     * gives their count; untagged ones (e.g. townhall1) are detected.
+     * underground layers (solid substitution); the top one must replace the ground surface.
      */
-    private static BlockPos origin(Blueprint blueprint, int x, int groundTop, int z) {
-        int groundLevels = BlueprintTagUtils.getNumberOfGroundLevels(blueprint, undergroundLayers(blueprint));
-        return new BlockPos(x, groundTop - groundLevels + 1, z);
+    private static BlockPos origin(ServerLevel level, String pack, Hut hut, Blueprint blueprint, int x, int groundTop, int z) {
+        return new BlockPos(x, groundTop - groundLevels(level, pack, hut, blueprint) + 1, z);
+    }
+
+    /**
+     * Number of underground layers: from the "groundlevel" tag when the blueprint has one, otherwise guessed on the
+     * hut's level 1 blueprint (simplest, rarely has a cellar) and kept at the same height relative to the anchor.
+     * Tagged blueprints back this: the anchor-relative ground is the same on every level in 2761 of 2770 (docs/NOTES.md).
+     */
+    private static int groundLevels(ServerLevel level, String pack, Hut hut, Blueprint blueprint) {
+        int tagged = BlueprintTagUtils.getNumberOfGroundLevels(blueprint, -1);
+        if (tagged >= 0) {
+            return tagged;
+        }
+        Blueprint first = blueprint;
+        if (hut.level() != 1) {
+            String path = HutBlueprints.path(pack, hut.block(), 1, level.registryAccess());
+            Blueprint loaded = path == null ? null : StructurePacks.getBlueprint(pack, path, true, level.registryAccess());
+            first = loaded == null ? blueprint : loaded;
+        }
+        return undergroundLayers(first) - first.getPrimaryBlockOffset().getY() + blueprint.getPrimaryBlockOffset().getY();
     }
 
     /** Mirrors AbstractBlockHut.setup (creative build tool) with no player: anchor block, building, level, then paste. */
@@ -169,15 +186,23 @@ public final class ColonySpawner {
                 new CreativeBuildingStructureHandler(level, anchor, blueprint, RotationMirror.NONE, true)), null));
     }
 
-    /** Bottom layers without any air are underground; at least one so a blueprint with none still stands on the ground. */
+    /**
+     * Bottom layers under 10% air are underground (a stray cellar or stair opening allowed); the first floor above has
+     * more. At least one, so a blueprint without any still stands on the ground. Checked against tagged blueprints.
+     */
     static int undergroundLayers(Blueprint blueprint) {
+        int area = blueprint.getSizeX() * blueprint.getSizeZ();
         for (int y = 0; y < blueprint.getSizeY(); y++) {
+            int air = 0;
             for (int x = 0; x < blueprint.getSizeX(); x++) {
                 for (int z = 0; z < blueprint.getSizeZ(); z++) {
                     if (blueprint.getBlockState(new BlockPos(x, y, z)).isAir()) {
-                        return Math.max(1, y);
+                        air++;
                     }
                 }
+            }
+            if (air * 10 >= area) {
+                return Math.max(1, y);
             }
         }
         return 1;
