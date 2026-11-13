@@ -3,6 +3,9 @@ package dev.sovereigns.world;
 import com.ldtteam.structurize.api.RotationMirror;
 import com.ldtteam.structurize.blueprints.v1.Blueprint;
 import com.ldtteam.structurize.blueprints.v1.BlueprintTagUtils;
+import com.ldtteam.structurize.management.Manager;
+import com.ldtteam.structurize.operations.PlaceStructureOperation;
+import com.ldtteam.structurize.placement.StructurePlacer;
 import com.ldtteam.structurize.storage.StructurePacks;
 import com.minecolonies.api.IMinecoloniesAPI;
 import com.minecolonies.api.blocks.AbstractBlockHut;
@@ -13,6 +16,8 @@ import com.minecolonies.api.colony.buildings.IBuilding;
 import com.minecolonies.api.eventbus.events.colony.ColonyCreatedModEvent;
 import com.minecolonies.api.util.CreativeBuildingStructureHandler;
 import com.mojang.authlib.GameProfile;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
@@ -22,7 +27,6 @@ import net.neoforged.neoforge.common.util.FakePlayerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * The only place that creates MineColonies colonies. Recipe and reasoning: docs/NOTES.md, "MineColonies 1.1.1368".
@@ -31,6 +35,7 @@ public final class ColonySpawner {
     public static final String TOWN_HALL_BLUEPRINT = "fundamentals/townhall1.blueprint";
     /** Max depth filled under the footprint when the ground dips. */
     private static final int MAX_FILL_DEPTH = 12;
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private ColonySpawner() {
     }
@@ -83,9 +88,13 @@ public final class ColonySpawner {
             townHall.setRotationMirror(RotationMirror.NONE);
             townHall.onUpgradeComplete(blueprint, 1);
         }
-        CreativeBuildingStructureHandler.loadAndPlaceStructureWithRotation(
-                level, CompletableFuture.completedFuture(blueprint), anchor, RotationMirror.NONE, true, null);
+        // Not CreativeBuildingStructureHandler.loadAndPlaceStructureWithRotation: with a Future it checks hasBluePrint()
+        // before the future is read and silently queues nothing (only the hut block appears).
+        Manager.addToQueue(new PlaceStructureOperation(new StructurePlacer(
+                new CreativeBuildingStructureHandler(level, anchor, blueprint, RotationMirror.NONE, true)), null));
 
+        LOGGER.info("Colony {} '{}': town hall anchor {}, footprint origin {} size {}x{}x{}", colony.getID(), colonyName,
+                anchor, origin, blueprint.getSizeX(), blueprint.getSizeY(), blueprint.getSizeZ());
         // The GUI path posts this, the API path does not; addons listen to it.
         IMinecoloniesAPI.getInstance().getEventBus().post(new ColonyCreatedModEvent(colony));
         return colony;
