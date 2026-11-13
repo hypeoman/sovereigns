@@ -45,10 +45,12 @@ public final class Sovereigns {
     private static int spawnColony(CommandSourceStack source, String name, String pack) {
         try {
             // Debug colonies get a province id from their name until stage 1 provides real provinces.
-            IColony colony = ColonySpawner.spawn(source.getLevel(), BlockPos.containing(source.getPosition()), "debug:" + name, name,
-                    "Ruler of " + name, pack);
+            ColonySpawner.Spawned town = ColonySpawner.spawn(source.getLevel(), BlockPos.containing(source.getPosition()), "debug:" + name,
+                    name, "Ruler of " + name, pack, 2, ColonySpawner.debugTown());
+            IColony colony = town.colony();
             source.sendSuccess(() -> Component.literal("Colony #" + colony.getID() + " '" + name + "' (" + pack + ") owned by "
-                    + colony.getPermissions().getOwnerName()), true);
+                    + colony.getPermissions().getOwnerName() + "; buildings " + town.placed()
+                    + (town.skipped().isEmpty() ? "" : "; no blueprint for " + town.skipped())), true);
             return colony.getID();
         } catch (IllegalStateException e) {
             source.sendFailure(Component.literal(e.getMessage()));
