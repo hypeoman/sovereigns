@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.sovereigns.world.ColonySpawner;
 import dev.sovereigns.world.OwnerChange;
+import dev.sovereigns.world.Realms;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -14,6 +15,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 
@@ -25,10 +27,13 @@ public final class Sovereigns {
 
     public Sovereigns(ModContainer container) {
         this.version = container.getModInfo().getVersion().toString();
+        container.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
+        Realms.register();
         NeoForge.EVENT_BUS.addListener(this::onRegisterCommands);
     }
 
     private void onRegisterCommands(RegisterCommandsEvent event) {
+        RealmCommands.register(event.getDispatcher());
         event.getDispatcher().register(Commands.literal("realmdebug")
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("ping").executes(ctx -> {
