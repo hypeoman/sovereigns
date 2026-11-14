@@ -39,9 +39,12 @@ public final class Realms {
 
         World world;
         long lastGameDay = -1;
+        /** The saved tag when {@link Codec} could not read it: written back untouched, so a failed load never overwrites the save. */
+        CompoundTag unreadable;
 
         @Override
         public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+            if (unreadable != null) return unreadable;
             if (world != null) {
                 tag.putInt("schema", Codec.SCHEMA);
                 tag.putByteArray("world", Codec.write(world));
@@ -52,7 +55,15 @@ public final class Realms {
 
         static Data load(CompoundTag tag, HolderLookup.Provider registries) {
             Data d = new Data();
-            if (tag.contains("world")) d.world = Codec.read(tag.getInt("schema"), tag.getByteArray("world"));
+            try {
+                if (tag.contains("world")) d.world = Codec.read(tag.getInt("schema"), tag.getByteArray("world"));
+            } catch (RuntimeException e) {
+                // Thrown out of here, vanilla logs it and hands out a fresh Data, which then replaces the file.
+                LOG.error("Sovereigns: cannot read the saved political map (schema {}), keeping the file as it is",
+                        tag.getInt("schema"), e);
+                d.unreadable = tag;
+                return d;
+            }
             d.lastGameDay = tag.getLong("lastGameDay");
             return d;
         }
@@ -117,8 +128,13 @@ public final class Realms {
 
     private static void onStarted(ServerStartedEvent event) {
         ServerLevel overworld = event.getServer().overworld();
+        Data loaded = overworld.getDataStorage().computeIfAbsent(Data.FACTORY, "sovereigns");
+        if (loaded.unreadable != null) {
+            LOG.error("Sovereigns is switched off for this world: its saved political map could not be read (see the error above)");
+            return;
+        }
         balance = Config.balance();
-        data = overworld.getDataStorage().computeIfAbsent(Data.FACTORY, "sovereigns");
+        data = loaded;
         if (data.world == null) data.world = new World(overworld.getSeed(), balance);
         data.world.applyGeometry(balance);
         if (data.lastGameDay < 0) data.lastGameDay = overworld.getGameTime() / TICKS_PER_DAY;

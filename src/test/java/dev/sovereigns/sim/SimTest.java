@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SimTest {
@@ -157,6 +158,15 @@ class SimTest {
         assertArrayEquals(bytes, Codec.write(back));
         assertEquals(-40, back.relation(1, 2));
         assertNotEquals(0, back.chronicle.size());
+    }
+
+    /** Realms.Data.load catches RuntimeException to keep an unreadable save from being overwritten. */
+    @Test
+    void unreadableBytesThrowRuntimeException() {
+        byte[] bytes = Codec.write(startWorld(13));
+        assertThrows(RuntimeException.class, () -> Codec.read(Codec.SCHEMA + 1, bytes));
+        assertThrows(RuntimeException.class, () -> Codec.read(Codec.SCHEMA, Arrays.copyOf(bytes, bytes.length / 2)));
+        assertThrows(RuntimeException.class, () -> Codec.read(Codec.SCHEMA, new byte[0]));
     }
 
     @Test

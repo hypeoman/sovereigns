@@ -59,7 +59,7 @@ final class RealmCommands {
     private static int reply(CommandSourceStack src, Action action) {
         World w = Realms.world();
         if (w == null || w.regions.isEmpty()) {
-            src.sendFailure(Component.literal("The political map is still being generated"));
+            src.sendFailure(Component.literal("No political map yet: it is still being generated, or its save could not be read (see the server log)"));
             return 0;
         }
         String text = action.run(w, Realms.balance(), src);
